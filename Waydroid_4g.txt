@@ -1,0 +1,138 @@
+TODO: Add /data/quectel_debug_log
+
+
+Add /vendor/etc/ql-ril.conf
+Add /vendor/manifest.xml
+
+Build.prop tweaks
+https://xdaforums.com/t/build-prop-and-or-other-config-files-able-to-be-tweaked.3839315/
+
+Add APNs to /system/etc/apns-conf.xml
+https://android.googlesource.com/device/sample/+/main/etc/apns-full-conf.xml
+
+
+Serial on ttyUSB2 (AT channel):
+
+Get default USB config
+-> AT+QCFG="USBCFG"
+<- +QCFG: "usbcfg",0x2C7C,0x0125,1,1,1,1,1,0,0
+<- OK
+
+Enable UAC device
+-> AT+QCFG="USBCFG",0x2C7C,0x0125,1,1,1,1,1,0,1
+<- OK
+
+Show UAC options
+-> AT+QPCMV=?
+<- +QPCMV: (0,1),(0-2)
+<- OK
+
+Show current UAC config
+-> AT+QPCMV?
+<- +QPCMV: 0,0
+
+Enable UAC mode (not persistent)
+-> AT+QPCMV=1,2
+<- OK
+
+
+
+Run lsusb for Bus and Device number of EC25:
+Bus 001 Device 004: ID 2c7c:0125 Quectel Wireless Solutions Co., Ltd. EC25 LTE modem
+
+Run aplay -l for card number
+card 3: EC25E [EC25-E], device 0: USB Audio [USB Audio]                                                                                                                                                           
+  Subdevices: 1/1                                                                                                                                                                                                 
+  Subdevice #0: subdevice #0   
+
+sudo nano /var/lib/waydroid/lxc/waydroid/config
+
+File: config
+lxc.mount.auto = cgroup:mixed sys:ro proc
+
+sudo nano /var/lib/waydroid/lxc/waydroid/config_nodes
+
+File: config_nodes
+#lxc.cgroup2.devices.allow: c 189:4 rwm
+lxc.mount.entry = /dev/bus/usb/001/004 dev/bus/usb/001/004 none bind,optional,create=file
+
+#lxc.cgroup2.devices.allow: c 180:2 rwm
+lxc.mount.entry = /dev/cdc-wdm2 dev/cdc-wdm2 none bind,create=file,optional 0 0
+
+#lxc.cgroup2.devices.allow: c 188:* rwm
+lxc.mount.entry = /dev/ttyUSB0 dev/ttyUSB0 none bind,create=file,optional 0 0
+lxc.mount.entry = /dev/ttyUSB1 dev/ttyUSB1 none bind,create=file,optional 0 0
+lxc.mount.entry = /dev/ttyUSB2 dev/ttyUSB2 none bind,create=file,optional 0 0
+lxc.mount.entry = /dev/ttyUSB3 dev/ttyUSB3 none bind,create=file,optional 0 0
+
+#lxc.cgroup2.devices.allow: c 116, 19 rwm
+lxc.mount.entry = /dev/snd/controlC3 dev/snd/controlC3 none bind,create=file,optional 0 0
+
+#lxc.cgroup2.devices.allow: c 116,4 rwm
+lxc.mount.entry = /dev/snd/pcmC3D0c dev/snd/pcmC3D0c none bind,create=file,optional 0 0
+
+#lxc.cgroup2.devices.allow: c 116,3 rwm
+lxc.mount.entry = /dev/snd/pcmC3D0p dev/snd/pcmC3D0p none bind,create=file,optional 0 0
+
+#lxc.cgroup2.devices.allow: c 108, 0 rwm
+lxc.mount.entry = /dev/ppp dev/ppp none bind,create=file,optional 0 0
+
+lxc.mount.entry = /sys/kernel/debug/usb/usbmon/1s sys/kernel/debug/usb/usbmon/1s none bind,create=file,optional 0 0
+lxc.mount.entry = /sys/kernel/debug/usb/usbmon/1u sys/kernel/debug/usb/usbmon/1u none bind,create=file,optional 0 0
+lxc.mount.entry = /sys/kernel/debug/usb/usbmon/1t sys/kernel/debug/usb/usbmon/1t none bind,create=file,optional 0 0
+
+Shell:
+sudo modprobe ppp_generic
+sudo chmod ugo+rwx /dev/bus/usb/001/004
+sudo chmod ugo+rwx /dev/cdc-wdm2
+sudo chmod ugo+rwx /dev/ttyUSB0
+sudo chmod ugo+rwx /dev/ttyUSB1
+sudo chmod ugo+rwx /dev/ttyUSB2
+sudo chmod ugo+rwx /dev/ttyUSB3
+sudo chmod ugo+rwx /dev/snd/controlC3
+sudo chmod ugo+rwx /dev/snd/pcmC3D0c
+sudo chmod ugo+rwx /dev/snd/pcmC3D0p
+sudo chmod ugo+rwx /dev/ppp
+
+For RIL 1.6
+sudo modprobe usbmon
+sudo chmod ugo+rwx /sys/kernel/debug/usb/usbmon/1s
+sudo chmod ugo+rwx /sys/kernel/debug/usb/usbmon/1t
+sudo chmod ugo+rwx /sys/kernel/debug/usb/usbmon/1u
+
+
+Once waydroid is running:
+sudo /lib/waydroid/data/scripts/waydroid-net.sh stop
+
+sudo ip link
+9: vethfcZwPf@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master waydroid0 state UP mode DEFAULT group default qlen 1000
+    link/ether fe:73:63:05:36:da brd ff:ff:ff:ff:ff:ff link-netnsid 0
+
+sudo ip link set vethfcZwPf down
+
+
+
+:/ # getprop | grep ril
+[gsm.version.ril-impl]: [Quectel_Android_RIL_Driver_V3.6.35]
+[init.svc.vendor.ril-daemon]: [running]
+[init.svc_debug_pid.vendor.ril-daemon]: [196]
+[ril.function.dataonly]: [0]
+[ril.subscription.types]: [SIM]
+[ro.boot.noril]: [no]
+[ro.boottime.vendor.ril-daemon]: [2062303004608]
+[ro.radio.noril]: [no]
+[ro.ril.enable.amr.wideband]: [1]
+[ro.telephony.ril.config]: [simactivation]
+[vendor.rild.libpath]: [/vendor/lib64/hw/libreference-ril.so]
+
+:/ # ps -elf | grep ril                                                                                                                                                                                          
+radio            196       1 0 15:03:52 ?     00:00:00 rild -l /vendor/lib64/hw/libreference-ril.so
+root            2211    1135 0 15:11:26 pts/0 00:00:00 grep ril
+
+:/ # getprop | grep phone                                                                                                                                                                                        
+[cache_key.telephony.phone_account_to_subid]: [-7921242441362823577]
+[debug.tracing.battery_stats.phone_scanning]: [0]
+[debug.tracing.battery_stats.phone_signal_strength]: [4]
+[debug.tracing.battery_stats.phone_state]: [0]
+[gsm.current.phone-type]: [1]
+[hw.nophone]: [no]

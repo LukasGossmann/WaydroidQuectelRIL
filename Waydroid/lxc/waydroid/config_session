@@ -1,0 +1,4 @@
+lxc.mount.entry = tmpfs /run/user/1000 none create=dir 0 0
+lxc.mount.entry = /run/user/1000/wayland-1 run/user/1000/wayland-1 none rbind,create=file 0 0
+lxc.mount.entry = /run/user/1000/pulse/native run/user/1000/pulse/native none rbind,create=file 0 0
+lxc.mount.entry = /home/lukas/.local/share/waydroid/data data none rbind 0 0
